@@ -27,18 +27,24 @@ app.post('/submit', upload.fields([
     const fromEmail = req.body.email;
     const text = req.body.text;
     const content = req.body.content;
+    if (!req.body.disclaimer_ack) {
+      return res.status(400).send('❌ You must acknowledge the data disclaimer.');
+    }
+
+    await supabase
+      .from('users_watermark')
+      .update({ disclaimer_acknowledged: true })
+      .eq('from_email', fromEmail);
 
     const csvFile = req.files['to'][0];
     const logoFile = req.files['logo'][0];
     const pdfFiles = req.files['pdf'];
 
-    // ✅ Validate total size of PDFs
     const totalSize = pdfFiles.reduce((sum, file) => sum + file.size, 0);
     if (totalSize > 25 * 1024 * 1024) {
       return res.status(400).send('❌ Total uploaded PDFs exceed 25MB.');
     }
 
-    // ✅ Fetch app password from Supabase
     const { data: creds, error: credErr } = await supabase
       .from('users_watermark')
       .select('app_password')
