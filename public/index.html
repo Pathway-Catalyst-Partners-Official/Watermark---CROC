@@ -2,60 +2,356 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Form Upload</title>
+  <title>CROC X Pathway Catalyst - Watermarking</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
-      font-family: Arial, sans-serif;
-      margin: 30px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f8fafc;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
     }
+
+    .form-container {
+      background: white;
+      padding: 40px;
+      margin: 60px auto;
+      border-radius: 10px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 600px;
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 30px;
+    }
+
     label {
       display: block;
-      margin: 15px 0 5px;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
     }
-    input, textarea {
+
+    input[type="text"],
+    input[type="email"],
+    input[type="file"],
+    textarea {
       width: 100%;
-      padding: 8px;
+      padding: 10px 12px;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 15px;
+      box-sizing: border-box;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .checkbox-container {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #333;
+    }
+
+    button {
+      display: block;
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
+    button:hover:not(:disabled) {
+      background-color: #0056b3;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background: #28a745;
+      color: white;
+      padding: 15px 25px;
+      border-radius: 8px;
+      font-weight: bold;
+      display: none;
+      z-index: 9999;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.4);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      text-align: center;
+      max-width: 400px;
+    }
+
+    .modal-buttons {
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-around;
+    }
+
+    .modal-buttons button {
+      padding: 10px 20px;
+    }
+
+    .pdf-preview {
       margin-bottom: 15px;
     }
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
+
+    .pdf-preview iframe {
+      width: 100%;
+      height: 300px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin-top: 8px;
+    }
+
+    .remove-btn {
+      margin-top: 6px;
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .remove-btn:hover {
+      background-color: #a71d2a;
+    }
+
+    .drop-zone {
+      border: 2px dashed #007bff;
+      border-radius: 6px;
+      padding: 20px;
+      text-align: center;
+      color: #555;
+      margin-bottom: 20px;
+      background: #f0f8ff;
       cursor: pointer;
     }
-    form {
-      max-width: 600px;
+
+    .drop-zone.dragover {
+      background-color: #e0eaff;
+      border-color: #0056b3;
+    }
+
+    @media (max-width: 600px) {
+      .form-container {
+        padding: 20px;
+        margin: 20px;
+      }
+
+      h2 {
+        font-size: 20px;
+      }
     }
   </style>
 </head>
 <body>
-  <h2>Submission Form</h2>
-  <form id="uploadForm" enctype="multipart/form-data" method="POST" action="/submit">
-    <!-- From Email -->
-    <label for="email">From Email:</label>
-    <input type="email" id="email" name="email" required />
+  <div class="form-container">
+    <h2>Send Watermarked PDFs</h2>
+    <form id="emailForm" enctype="multipart/form-data" method="POST" action="/submit">
+      <label for="email">From Email:</label>
+      <input type="email" name="email" id="email" required />
 
-    <!-- To (CSV Upload) -->
-    <label for="to">To (CSV File):</label>
-    <input type="file" id="to" name="to" accept=".csv" required />
+      <label for="to">CSV File (To & CC):</label>
+      <input type="file" name="to" id="to" accept=".csv" required />
 
-    <!-- Logo (Image Upload) -->
-    <label for="logo">Logo (Image File):</label>
-    <input type="file" id="logo" name="logo" accept="image/*" required />
+      <label for="logo">Logo Image:</label>
+      <input type="file" name="logo" id="logo" accept="image/*" required />
 
-    <!-- Text Input -->
-    <label for="text">Text:</label>
-    <input type="text" id="text" name="text" required />
+      <label for="text">Watermark Text:</label>
+      <input type="text" name="text" id="text" required />
 
-    <!-- Content Input -->
-    <label for="content">Content:</label>
-    <textarea id="content" name="content" rows="5" required></textarea>
+      <label for="content">Email Content:</label>
+      <textarea name="content" id="content" required></textarea>
 
-    <!-- PDF Upload -->
-    <label for="pdf">PDF Upload:</label>
-    <input type="file" id="pdf" name="pdf" accept="application/pdf" required />
+      <label>PDF Files (Max 25MB total):</label>
+      <div id="dropZone" class="drop-zone">
+        Drag and drop PDFs here or click to select
+        <input type="file" name="pdf" id="pdf" accept="application/pdf" multiple hidden required />
+      </div>
 
-    <button type="submit">Submit</button>
-  </form>
+      <div id="pdfPreviewContainer">
+        <strong>PDF Preview:</strong>
+        <div id="pdfPreview" style="margin-top: 10px;"></div>
+      </div>
+
+      <div class="checkbox-container">
+        <input type="checkbox" name="disclaimer_ack" id="disclaimer_ack" required />
+        <label for="disclaimer_ack">
+          I acknowledge that uploaded data and email addresses are processed temporarily and automatically deleted after completion.
+        </label>
+      </div>
+
+      <button id="submitBtn" type="submit">Send Emails</button>
+    </form>
+  </div>
+
+  <div class="toast" id="toast">✅ Emails sent successfully!</div>
+
+  <div class="modal" id="confirmModal">
+    <div class="modal-content">
+      <p>Are you sure you want to send these emails?</p>
+      <div class="modal-buttons">
+        <button id="confirmYes">Yes, Send</button>
+        <button id="confirmNo">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('emailForm');
+    const pdfInput = document.getElementById('pdf');
+    const dropZone = document.getElementById('dropZone');
+    const submitBtn = document.getElementById('submitBtn');
+    const modal = document.getElementById('confirmModal');
+    const toast = document.getElementById('toast');
+    const pdfPreviewDiv = document.getElementById('pdfPreview');
+
+    let confirmed = false;
+    let pdfFiles = [];
+
+    // Drop zone events
+    dropZone.addEventListener('click', () => pdfInput.click());
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf');
+      pdfFiles.push(...files);
+      updatePreview();
+    });
+
+    // File input change
+    pdfInput.addEventListener('change', () => {
+      pdfFiles = Array.from(pdfInput.files);
+      updatePreview();
+    });
+
+    function updatePreview() {
+      pdfPreviewDiv.innerHTML = '';
+      let totalSize = 0;
+
+      pdfFiles.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const blob = new Blob([e.target.result], { type: 'application/pdf' });
+          const url = URL.createObjectURL(blob);
+
+          const container = document.createElement('div');
+          container.className = 'pdf-preview';
+
+          const label = document.createElement('div');
+          label.innerText = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+
+          const iframe = document.createElement('iframe');
+          iframe.src = url;
+
+          const removeBtn = document.createElement('button');
+          removeBtn.innerText = 'Remove';
+          removeBtn.className = 'remove-btn';
+          removeBtn.onclick = () => {
+            pdfFiles.splice(index, 1);
+            updatePreview();
+          };
+
+          container.appendChild(label);
+          container.appendChild(iframe);
+          container.appendChild(removeBtn);
+          pdfPreviewDiv.appendChild(container);
+        };
+        reader.readAsArrayBuffer(file);
+        totalSize += file.size;
+      });
+
+      if (totalSize > 25 * 1024 * 1024) {
+        alert('❌ Total PDF size exceeds 25MB.');
+      }
+
+      // Sync to hidden input for submission
+      const dataTransfer = new DataTransfer();
+      pdfFiles.forEach(f => dataTransfer.items.add(f));
+      pdfInput.files = dataTransfer.files;
+    }
+
+    form.addEventListener('submit', (e) => {
+      if (!confirmed) {
+        e.preventDefault();
+
+        const totalSize = pdfFiles.reduce((sum, f) => sum + f.size, 0);
+        if (totalSize > 25 * 1024 * 1024) {
+          alert("❌ Total size of PDFs must be under 25MB.");
+          return;
+        }
+
+        modal.style.display = 'flex';
+      }
+    });
+
+    document.getElementById('confirmYes').onclick = () => {
+      confirmed = true;
+      modal.style.display = 'none';
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending...';
+      form.submit();
+    };
+
+    document.getElementById('confirmNo').onclick = () => {
+      modal.style.display = 'none';
+      confirmed = false;
+    };
+
+    function showToast() {
+      toast.style.display = 'block';
+      setTimeout(() => toast.style.display = 'none', 4000);
+    }
+
+    if (window.location.search.includes("success")) {
+      showToast();
+    }
+  </script>
 </body>
 </html>
