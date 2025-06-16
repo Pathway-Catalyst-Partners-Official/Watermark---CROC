@@ -140,29 +140,36 @@ async function addWatermark(pdfBuffer, logoBuffer, text, lenderName) {
   const pdfDoc = await PDFDocument.load(pdfBuffer);
   const logoImage = await pdfDoc.embedPng(logoBuffer);
   const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const logoDims = logoImage.scale(0.25);
+  const logoDims = logoImage.scale(0.3);
 
   for (const page of pdfDoc.getPages()) {
     const { width, height } = page.getSize();
 
     page.drawImage(logoImage, {
-      x: 50,
-      y: height - 80,
+      x: (width - logoDims.width) / 2,
+      y: (height - logoDims.height) / 2,
       width: logoDims.width,
-      height: logoDims.height
+      height: logoDims.height,
+      opacity: 0.3
     });
 
-    page.drawText(`${text} - ${lenderName}`, {
-      x: 50,
-      y: 50,
-      size: 12,
-      font,
-      color: rgb(0.7, 0.7, 0.7),
-      opacity: 0.4
-    });
+    const repeatedText = `${text} - ${lenderName}`;
+    const spacing = 150;
+    for (let x = -width; x < width * 2; x += spacing) {
+      for (let y = -height; y < height * 2; y += spacing) {
+        page.drawText(repeatedText, {
+          x,
+          y,
+          size: 18,
+          font,
+          color: rgb(0.8, 0.8, 0.8),
+          rotate: { type: 'degrees', angle: 45 },
+          opacity: 0.3
+        });
+      }
+    }
 
-    
-    const brand = 'Powered by croccrm & pathway catalyst';
+    const brand = 'Powered by pathway catalyst & croccrm  ';
     const textWidth = font.widthOfTextAtSize(brand, 10);
     page.drawText(brand, {
       x: width - textWidth - 50,
