@@ -93,7 +93,7 @@ app.post('/submit', upload.fields([
       attachments.forEach(a => fs.unlinkSync(a.path));
     }
 
-    res.send('✅ All emails sent.');
+    res.redirect('/thankyou.html');
   } catch (err) {
     console.error(err);
     res.status(500).send('❌ Error processing request.');
