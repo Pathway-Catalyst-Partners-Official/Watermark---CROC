@@ -25,6 +25,7 @@ app.post('/submit', upload.fields([
 ]), async (req, res) => {
   try {
     const fromEmail = req.body.email;
+    console.log('📩 Email from form:', fromEmail);
     const text = req.body.text;
     const content = req.body.content;
     const subjectBase = req.body.subjectBase;
@@ -36,9 +37,12 @@ app.post('/submit', upload.fields([
     const allowedList = process.env.ALLOWED_SENDERS
       ? process.env.ALLOWED_SENDERS.split(',').map(e => e.trim().toLowerCase())
       : [];
+    console.log(' Allowed senders:', allowedList);
     if (!allowedList.includes(fromEmail.toLowerCase())) {
+      console.log('❌ Rejected email (not allowed):', fromEmail);
       return res.status(403).send('❌ Unauthorized: This email is not allowed to send.');
     }
+    console.log('✅ Email is allowed, checking Supabase for app password...');
 
     await supabase
       .from('users_watermark')
@@ -59,6 +63,8 @@ app.post('/submit', upload.fields([
       .select('app_password')
       .eq('from_email', fromEmail)
       .single();
+    console.log('🔍 Supabase query result:', { creds, credErr });
+
 
     if (credErr || !creds) {
       return res.status(401).send('❌ Unauthorized: Email not found in database.');
