@@ -19,16 +19,25 @@ const supabase = createClient(
 );
 
 app.post('/submit', upload.fields([
-  { name: 'to' }, 
-  { name: 'logo' }, 
+  { name: 'to' },
+  { name: 'logo' },
   { name: 'pdf' }
 ]), async (req, res) => {
   try {
     const fromEmail = req.body.email;
     const text = req.body.text;
     const content = req.body.content;
+    const subjectBase = req.body.subjectBase;
+
     if (!req.body.disclaimer_ack) {
       return res.status(400).send('❌ You must acknowledge the data disclaimer.');
+    }
+
+    const allowedList = process.env.ALLOWED_SENDERS
+      ? process.env.ALLOWED_SENDERS.split(',').map(e => e.trim().toLowerCase())
+      : [];
+    if (!allowedList.includes(fromEmail.toLowerCase())) {
+      return res.status(403).send('❌ Unauthorized: This email is not allowed to send.');
     }
 
     await supabase
@@ -63,7 +72,7 @@ app.post('/submit', upload.fields([
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.SMTP_USER,
+        user: fromEmail,
         pass: appPassword
       }
     });
@@ -82,14 +91,17 @@ app.post('/submit', upload.fields([
         const watermarkedPdf = await addWatermark(pdfBuffer, logoBuffer, text, lenderName);
         const tempPath = path.join(__dirname, '../uploads', `${Date.now()}_${lenderName}_${pdfFile.originalname}`);
         fs.writeFileSync(tempPath, watermarkedPdf);
-        attachments.push({ filename: `Watermarked_${lenderName}_${pdfFile.originalname}`, path: tempPath });
+        attachments.push({
+          filename: `Watermarked_${lenderName}_${pdfFile.originalname}`,
+          path: tempPath
+        });
       }
 
       const mailOptions = {
-        from: `"${fromEmail}" <${process.env.SMTP_USER}>`,
+        from: fromEmail,
         to,
         cc: cc.split(',').map(c => c.trim()).filter(Boolean),
-        subject: `Deal for ${lenderName}`,
+        subject: `${subjectBase} - ${lenderName}`,
         text: content,
         attachments
       };
@@ -104,7 +116,11 @@ app.post('/submit', upload.fields([
     console.error(err);
     res.status(500).send('❌ Error processing request.');
   } finally {
-    Object.values(req.files).flat().forEach(file => fs.unlinkSync(file.path));
+    if (req.files) {
+      Object.values(req.files).flat().forEach(file => {
+        fs.existsSync(file.path) && fs.unlinkSync(file.path);
+      });
+    }
   }
 });
 
@@ -116,7 +132,14 @@ async function addWatermark(pdfBuffer, logoBuffer, text, lenderName) {
 
   for (const page of pdfDoc.getPages()) {
     const { width, height } = page.getSize();
-    page.drawImage(logoImage, { x: 50, y: height - 80, width: logoDims.width, height: logoDims.height });
+
+    page.drawImage(logoImage, {
+      x: 50,
+      y: height - 80,
+      width: logoDims.width,
+      height: logoDims.height
+    });
+
     page.drawText(`${text} - ${lenderName}`, {
       x: 50,
       y: 50,
@@ -125,6 +148,8 @@ async function addWatermark(pdfBuffer, logoBuffer, text, lenderName) {
       color: rgb(0.7, 0.7, 0.7),
       opacity: 0.4
     });
+
+    
     const brand = 'Powered by croccrm & pathway catalyst';
     const textWidth = font.widthOfTextAtSize(brand, 10);
     page.drawText(brand, {
