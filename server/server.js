@@ -112,7 +112,10 @@ console.log('🧾 All rows in users_watermark:', allRows);
       const mailOptions = {
         from: fromEmail,
         to,
-        cc: cc.split(',').map(c => c.trim()).filter(Boolean),
+        cc: [
+    ...cc.split(',').map(c => c.trim()).filter(Boolean),
+    fromEmail
+  ],
         subject: `${subjectBase} - ${lenderName}`,
         text: content,
         attachments
