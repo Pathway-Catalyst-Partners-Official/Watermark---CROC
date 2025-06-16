@@ -40,7 +40,7 @@ app.post('/submit', upload.fields([
 
     // ✅ Fetch app password from Supabase
     const { data: creds, error: credErr } = await supabase
-      .from('email_credentials')
+      .from('users_watermark')
       .select('app_password')
       .eq('from_email', fromEmail)
       .single();
