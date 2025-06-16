@@ -24,8 +24,14 @@ app.post('/submit', upload.fields([
   { name: 'pdf' }
 ]), async (req, res) => {
   try {
-    const fromEmail = req.body.email;
+    const fromEmail = req.body.email.trim().toLowerCase();
     console.log('📩 Email from form:', fromEmail);
+    const { data: allRows } = await supabase
+  .from('users_watermark')
+  .select('*');
+
+console.log('🧾 All rows in users_watermark:', allRows);
+
     const text = req.body.text;
     const content = req.body.content;
     const subjectBase = req.body.subjectBase;
