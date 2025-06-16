@@ -172,7 +172,7 @@ async function addWatermark(pdfBuffer, logoBuffer, text, lenderName) {
       }
     }
 
-    const brand = 'Powered by pathway catalyst & croccrm  ';
+    const brand = 'Powered by pathway catalyst';
     const textWidth = font.widthOfTextAtSize(brand, 10);
     page.drawText(brand, {
       x: width - textWidth - 50,
