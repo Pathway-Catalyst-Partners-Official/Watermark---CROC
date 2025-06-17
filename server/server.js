@@ -5,7 +5,6 @@ const fs = require('fs');
 const path = require('path');
 const Papa = require('papaparse');
 const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
-const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const app = express();
@@ -13,10 +12,8 @@ const upload = multer({ dest: 'uploads/' });
 app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
+// Load credentials from creds.json
+const credentials = JSON.parse(fs.readFileSync(path.join(__dirname, 'creds.json'), 'utf8'));
 
 app.post('/submit', upload.fields([
   { name: 'to' },
@@ -26,11 +23,6 @@ app.post('/submit', upload.fields([
   try {
     const fromEmail = req.body.email.trim().toLowerCase();
     console.log('📩 Email from form:', fromEmail);
-    const { data: allRows } = await supabase
-  .from('users_watermark')
-  .select('*');
-
-console.log('🧾 All rows in users_watermark:', allRows);
 
     const text = req.body.text;
     const content = req.body.content;
@@ -40,20 +32,12 @@ console.log('🧾 All rows in users_watermark:', allRows);
       return res.status(400).send('❌ You must acknowledge the data disclaimer.');
     }
 
-    const allowedList = process.env.ALLOWED_SENDERS
-      ? process.env.ALLOWED_SENDERS.split(',').map(e => e.trim().toLowerCase())
-      : [];
-    console.log(' Allowed senders:', allowedList);
-    if (!allowedList.includes(fromEmail.toLowerCase())) {
-      console.log('❌ Rejected email (not allowed):', fromEmail);
-      return res.status(403).send('❌ Unauthorized: This email is not allowed to send.');
+    if (!credentials[fromEmail]) {
+      console.log('❌ No app password found for this email:', fromEmail);
+      return res.status(401).send('❌ Unauthorized: App password not found for this email.');
     }
-    console.log('✅ Email is allowed, checking Supabase for app password...');
 
-    await supabase
-      .from('users_watermark')
-      .update({ disclaimer_acknowledged: true })
-      .eq('from_email', fromEmail);
+    const appPassword = credentials[fromEmail];
 
     const csvFile = req.files['to'][0];
     const logoFile = req.files['logo'][0];
@@ -64,19 +48,6 @@ console.log('🧾 All rows in users_watermark:', allRows);
       return res.status(400).send('❌ Total uploaded PDFs exceed 25MB.');
     }
 
-    const { data: creds, error: credErr } = await supabase
-      .from('users_watermark')
-      .select('app_password')
-      .eq('from_email', fromEmail)
-      .single();
-    console.log('🔍 Supabase query result:', { creds, credErr });
-
-
-    if (credErr || !creds) {
-      return res.status(401).send('❌ Unauthorized: Email not found in database.');
-    }
-
-    const appPassword = creds.app_password;
     const csvText = fs.readFileSync(csvFile.path, 'utf8');
     const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
     const logoBuffer = fs.readFileSync(logoFile.path);
@@ -101,7 +72,7 @@ console.log('🧾 All rows in users_watermark:', allRows);
       for (const pdfFile of pdfFiles) {
         const pdfBuffer = fs.readFileSync(pdfFile.path);
         const watermarkedPdf = await addWatermark(pdfBuffer, logoBuffer, text, lenderName);
-        const tempPath = path.join(__dirname, '../uploads', `${Date.now()}_${lenderName}_${pdfFile.originalname}`);
+        const tempPath = path.join(__dirname, 'uploads', `${Date.now()}_${lenderName}_${pdfFile.originalname}`);
         fs.writeFileSync(tempPath, watermarkedPdf);
         attachments.push({
           filename: `Watermarked_${lenderName}_${pdfFile.originalname}`,
@@ -113,9 +84,9 @@ console.log('🧾 All rows in users_watermark:', allRows);
         from: fromEmail,
         to,
         cc: [
-    ...cc.split(',').map(c => c.trim()).filter(Boolean),
-    fromEmail
-  ],
+          ...cc.split(',').map(c => c.trim()).filter(Boolean),
+          fromEmail
+        ],
         subject: `${subjectBase} - ${lenderName}`,
         text: content,
         attachments
@@ -148,6 +119,7 @@ async function addWatermark(pdfBuffer, logoBuffer, text, lenderName) {
   for (const page of pdfDoc.getPages()) {
     const { width, height } = page.getSize();
 
+    // Center logo
     page.drawImage(logoImage, {
       x: (width - logoDims.width) / 2,
       y: (height - logoDims.height) / 2,
