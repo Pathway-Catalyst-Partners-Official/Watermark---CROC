@@ -12,7 +12,8 @@ const upload = multer({ dest: 'uploads/' });
 app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
 
-const credentials = JSON.parse(fs.readFileSync('/config/creds.json', 'utf8'));
+const configuredEmail = process.env.EMAIL_ADDRESS;
+const appPassword = process.env.EMAIL_PASSWORD;
 
 app.post('/submit', upload.fields([
   { name: 'to' },
@@ -31,12 +32,10 @@ app.post('/submit', upload.fields([
       return res.status(400).send('❌ You must acknowledge the data disclaimer.');
     }
 
-    if (!credentials[fromEmail]) {
-      console.log('❌ No app password found for this email:', fromEmail);
-      return res.status(401).send('❌ Unauthorized: App password not found for this email.');
+    if (fromEmail !== configuredEmail) {
+      console.log('❌ Email not authorized:', fromEmail);
+      return res.status(401).send('❌ Unauthorized: Email not allowed.');
     }
-
-    const appPassword = credentials[fromEmail];
 
     const csvFile = req.files['to'][0];
     const logoFile = req.files['logo'][0];
