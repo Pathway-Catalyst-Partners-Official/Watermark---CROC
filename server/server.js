@@ -12,8 +12,7 @@ const upload = multer({ dest: 'uploads/' });
 app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
 
-// Load credentials from creds.json
-const credentials = JSON.parse(fs.readFileSync(path.join(__dirname, 'creds.json'), 'utf8'));
+const credentials = JSON.parse(fs.readFileSync('/config/creds.json', 'utf8'));
 
 app.post('/submit', upload.fields([
   { name: 'to' },
