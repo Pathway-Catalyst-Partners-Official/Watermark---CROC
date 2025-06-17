@@ -70,6 +70,11 @@ app.post('/submit', upload.fields([
       for (const pdfFile of pdfFiles) {
         const pdfBuffer = fs.readFileSync(pdfFile.path);
         const watermarkedPdf = await addWatermark(pdfBuffer, logoBuffer, text, lenderName);
+        const uploadsDir = path.join(__dirname, 'uploads');
+        if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir);
+          }
+
         const tempPath = path.join(__dirname, 'uploads', `${Date.now()}_${lenderName}_${pdfFile.originalname}`);
         fs.writeFileSync(tempPath, watermarkedPdf);
         attachments.push({
